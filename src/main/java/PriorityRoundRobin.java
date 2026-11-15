@@ -22,11 +22,15 @@ quantum of 4 is used. Also assume that a smaller priority
 number means a higher priority.
 */
 
-// Abstract Class to be extended by Processes
+// Class to implement for Specific Processes
 abstract class Process {
+	
+	// Variable Declaration
 	private final int processID;
 	private final int priority;
 	private int burst;
+	
+	// Variable Initialization
 	private int signalCount= 0;
 	
 	// Process Constructor
@@ -51,10 +55,10 @@ abstract class Process {
 		return this.burst;
 	}
 	
-	// TODO: Implement decreaseBurst
-	// Should this return a variable? Should the program check it first?
-	protected void decreaseBurst() {
-		// TODO
+	// Decrease this Process' Burst
+	protected boolean decreaseBurst() {
+		// TODO: Should this return a variable? Should the program check it first?
+		return this.burst-- == 0;
 	}
 	
 	// Return this Process' Current Signal Count
@@ -97,16 +101,76 @@ class ProcessC extends Process {
 	}
 }
 
+
+// Class to implement Priority Round Robin
 public class PriorityRoundRobin {
-	// Method for printing a thing
-	// Parameters is an array of arrays ((Process, Arrive Time)(Process, Arrive Time))
-	static void ganttChart() {
+
+	// Records
+	public record ProcessTimes(Process[] processes, int[] processStartTimes) {}
+	
+	// Input Validation
+	static void validateInput(String input) {
+		String inputRegex = "^\\([a-zA-Z0-9_-]+,\\s*\\d+\\)(?:,\\s*\\([a-zA-Z0-9_-]+,\\s*\\d+\\))*$";
+		if (!input.matches(inputRegex)) {
+			System.err.println("Input Error: Please use:\n"
+					+ "(Process 1 Type, Process 1 Start Time), (Process 2 Name, Process 2 Start Time)\n"
+					+ "e.g. (PA, 0), (PB, 0)");
+			System.exit(2);
+		}
+	}
+	
+	// Split input into List of ProcessTimes
+	static ProcessTimes splitInput(String input) {
+		// Remove the first and last parenthesis
+        String trimmedInput = input.substring(1, input.length() - 1);
+        // Split on "), (" with optional whitespace
+        String[] arrays = trimmedInput.split("\\),\\s*\\(");
+
+        // Initialize return arrays
+        Process[] processes = new Process[arrays.length];
+        int[] processStartTimes = new int[arrays.length];
+
+        // Iterate through the collection of elements, split on "," and populate the arrays
+        for (int i = 0; i < arrays.length; i++) {
+            String[] elements = arrays[i].split(",\\s*");
+            switch (elements[0]) {
+	            case "PA":
+	            	processes[i] = new ProcessA(i+1);
+	            	break;
+	            case "PB":
+	            	processes[i] = new ProcessB(i+1);
+	            	break;
+	            case "PC":
+	            	processes[i] = new ProcessC(i+1);
+	            	break;
+	            default:
+	            	System.err.println("Input Error: " + elements[0] + " is not a valid process name.");
+	            	System.exit(2);
+	        };
+            processStartTimes[i] = Integer.parseInt(elements[1]);
+        }
+        
+        return new ProcessTimes(processes, processStartTimes);
+	}
+	
+	// Produce a Gantt Chart from a list of processes and their corresponding start times
+	static void ganttChart(Process[] processes, int[] processStartTimes) {
 		// TODO Auto-generated method stub
-		System.out.println("I am a Geek");
+		for (int i = 0; i<processes.length; i++) {
+			System.out.println("Priority: " + processes[i].getPriority());
+			System.out.println("Time: " + processStartTimes[i]);
+			
+		}
 	}
 	
 	public static void main(String[] args) {
-		ganttChart();
+		// Hardcoded string defining the process types and start time
+		String input = "(PA, 0), (PB, 0)";
+		
+		validateInput(input);
+		ProcessTimes inputProcessTimes = splitInput(input);
+		ganttChart(inputProcessTimes.processes(), inputProcessTimes.processStartTimes());
+				
 	}
 
 }
