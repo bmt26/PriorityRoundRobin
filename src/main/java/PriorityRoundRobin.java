@@ -67,37 +67,163 @@ abstract class Process {
 	}
 	
 	// Signal this Process, Incrementing signalCount by 1
-	protected void Signal() {
+	protected void signal() {
 		this.signalCount++;
 	}
 	
+	protected void printProcess() {
+		System.out.printf("%d, %s, %d, %d, %d%n", 
+				this.processID,
+				this.getClass().getSimpleName(),
+				this.priority,
+				this.burst,
+				this.getSignalCount());
+	}
 	// TODO FORKS
 }
 
 // Process Type A
-class ProcessA extends Process {
+class PA extends Process {
 	
 	// ProcessA Constructor with priority 2 and burst time of 10
-	ProcessA(int processID) {
+	PA(int processID) {
 		super(processID, 2, 10);
 	}
 }
 
 // Process Type B
-class ProcessB extends Process {
+class PB extends Process {
 	
 	// ProcessB Constructor with priority 3 and burst time of 7
-	ProcessB(int processID) {
+	PB(int processID) {
 		super(processID, 3, 7);
 	}
 }
 
 // Process Type C
-class ProcessC extends Process {
+class PC extends Process {
 	
 	// ProcessC Constructor with priority 1 and burst time of 5
-	ProcessC(int processID) {
+	PC(int processID) {
 		super(processID, 1, 5);
+	}
+}
+
+// Node Class for queue
+class ProcessNode {
+    private Process process;
+    private ProcessNode next;
+    
+    // Node Constructor
+    ProcessNode(Process process) {
+        this.process = process;
+        this.next = null;
+    }
+    
+    // Get this ProcessNodes' Process
+    protected Process getProcess() {
+    	return this.process;
+    }
+    
+    // Set this ProcessNodes' Process
+    protected void setProcess(Process process) {
+    	this.process = process;
+    }
+    
+    // Get this ProcessNodes' next ProcessNode
+    protected ProcessNode getNext() {
+    	return this.next;
+    }
+    
+    // Set this ProcessNodes' next ProcessNode
+    protected void setNext(ProcessNode next) {
+    	this.next = next;
+    }
+}
+
+// Queue Class
+class ProcessQueue {
+	private ProcessNode front, rear;
+	int length;
+	
+	// Queue Constructor
+	ProcessQueue() {
+		this.front = this.rear = null;
+		this.length = 0;
+	}
+	
+	// Add a node into the queue
+	protected void enqueue(Process process) {
+		this.length++;
+		ProcessNode tempProcessNode = new ProcessNode(process);
+		
+		// If rear is null, then list is empty, set front to enqueued node
+		if (this.rear == null)
+			this.front = tempProcessNode;
+		// If rear is not null, set the previous rear's next to the enqueued node
+		else
+			this.rear.setNext(tempProcessNode);
+		// Set the rear to the enqueued node
+		this.rear = tempProcessNode;
+	}
+	
+	// Remove process from the top
+	protected void dequeue() {
+		// If queue is already empty, do nothing
+		if (this.front == null)
+			return;
+		
+		// Copy front node
+		ProcessNode tempProcessNode = this.front;
+		
+		// Set front node to front's next
+		this.front = this.front.getNext();
+		
+		// If queue is now empty, set rear to null
+		if (this.front == null)
+			this.rear = null;
+		
+		// Prevent removed node from pointing to another node
+		tempProcessNode.setNext(null);	
+		this.length--;
+	}
+	
+	// Peek on the process from the top
+	protected Process peek() {
+		// If front is not empty, return process
+		if (this.front != null) {
+			return this.front.getProcess();
+		}
+		
+		// Return exception
+		return null;
+	}
+	
+	// Return size of queue
+	protected int size() {
+		return this.length;
+	}
+	
+	// Print the processes of the queue
+	protected void printQueue() {
+		ProcessNode tempProcessNode = this.front;
+		
+		// Print all column headers
+		System.out.println("PID | Type | Priority | Burst | Signals");
+		while(tempProcessNode != null) {
+			Process tempProcess = tempProcessNode.getProcess();
+			
+			// Print all variable of process in format
+			System.out.printf("%-4d| %-5s| %-9d| %-6d| %d%n", 
+					tempProcess.getProcessID(),
+					tempProcess.getClass().getSimpleName(),
+					tempProcess.getPriority(),
+					tempProcess.getBurst(),
+					tempProcess.getSignalCount());
+			
+			// Iterate to next node
+			tempProcessNode = tempProcessNode.getNext();
+		}
 	}
 }
 
@@ -107,6 +233,18 @@ public class PriorityRoundRobin {
 
 	// Records
 	public record ProcessTimes(Process[] processes, int[] processStartTimes) {}
+	
+	// Test Function to Print Process Types and their start times
+	static void printProcessTimes(ProcessTimes processTimes) {
+		// Print Header
+		System.out.println("Process\n" + "Type | Time");
+		// Iterate through list and print process types and start times
+		for (int i = 0; i<processTimes.processes().length; i++) {
+			System.out.println(processTimes.processes()[i].getClass().getSimpleName()
+					+ "   | " + (processTimes.processStartTimes()[i]));
+			
+		}
+	}
 	
 	// Input Validation
 	static void validateInput(String input) {
@@ -135,14 +273,15 @@ public class PriorityRoundRobin {
             String[] elements = arrays[i].split(",\\s*");
             switch (elements[0]) {
 	            case "PA":
-	            	processes[i] = new ProcessA(i+1);
+	            	processes[i] = new PA(i+1);
 	            	break;
 	            case "PB":
-	            	processes[i] = new ProcessB(i+1);
+	            	processes[i] = new PB(i+1);
 	            	break;
 	            case "PC":
-	            	processes[i] = new ProcessC(i+1);
+	            	processes[i] = new PC(i+1);
 	            	break;
+	            // Process name is not valid
 	            default:
 	            	System.err.println("Input Error: " + elements[0] + " is not a valid process name.");
 	            	System.exit(2);
@@ -153,14 +292,57 @@ public class PriorityRoundRobin {
         return new ProcessTimes(processes, processStartTimes);
 	}
 	
+	static void testQueue(ProcessQueue processQueue) {
+		// Print the queues
+		int processQueueSizeMax = processQueue.size();
+		for (int i = 0; i < processQueueSizeMax; i++) {
+			System.out.println("Size: " + processQueue.size());
+			processQueue.printQueue();
+			System.out.print("\nRemoved: ");
+			processQueue.peek().printProcess();
+			processQueue.dequeue();
+			System.out.println();
+		}
+
+		System.out.println("Size: " + processQueue.size());
+		processQueue.printQueue();
+		processQueue.peek();
+		System.out.println();
+		Process temp = processQueue.peek();
+		processQueue.dequeue();
+		System.out.println("Removed: " + temp + "\n");
+		System.out.println("Size: " + processQueue.size());
+		processQueue.printQueue();
+	}
+	
 	// Produce a Gantt Chart from a list of processes and their corresponding start times
 	static void ganttChart(Process[] processes, int[] processStartTimes) {
-		// TODO Auto-generated method stub
-		for (int i = 0; i<processes.length; i++) {
-			System.out.println("Priority: " + processes[i].getPriority());
-			System.out.println("Time: " + processStartTimes[i]);
-			
+		// Error checking if process list and process start time list mismatch
+		if (processes.length != processStartTimes.length) {
+			System.err.println("Error: list of processes and list process start times are of different length");
+			System.exit(0);
 		}
+		
+		// Return if process list is empty
+		if (processes.length == 0) {
+			System.out.println("Empty process list");
+			return;
+		}
+		
+		// Create Queues
+		ProcessQueue ReadyQueue = new ProcessQueue();
+
+		// Insert processes into queues
+		for (int i = 0; i< processes.length; i++) {
+			if (processStartTimes[i] == 0) {
+				ReadyQueue.enqueue(processes[i]);
+			}
+		}
+		
+		testQueue(ReadyQueue);
+		
+		// printProcessTimes(new ProcessTimes(processes, processStartTimes));
+		
 	}
 	
 	public static void main(String[] args) {
